@@ -8,7 +8,7 @@ end
 spec = Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   
-  s.name = 'citrus'
+  s.name = 'citrus-compiler'
   s.version = '0.8.0'
   s.summary = "Linear compiler written in Ruby"
   
@@ -23,7 +23,7 @@ spec = Gem::Specification.new do |s|
   s.extra_rdoc_files = ['README.rdoc', 'LICENSE']
   
   s.author = "Mac Malone"
-  s.homepage = "http://github.com/ShadowSides/citrus"
+  s.homepage = "http://github.com/tophat/citrus"
 end
 
 Rake::GemPackageTask.new(spec) do |t|
