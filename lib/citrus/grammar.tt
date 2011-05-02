@@ -1,0 +1,345 @@
+grammar Citrus
+  rule script
+    expression more_expressions:(newline expression)* <Script> {
+      def expressions
+        [expression] + more_expressions.elements.map { |e| e.expression }
+      end
+    }
+  end
+
+  rule expression
+	block_comment
+	/
+    spaced_statements:(space parenthesized_statement)+ space <Expression> {
+      def statements
+        spaced_statements.elements.map { |e| e.parenthesized_statement.statement }
+      end
+    }
+    /
+    space
+  end
+
+  rule parenthesized_statement
+	space "(" parenthesized_statement ")" space {
+	  def statement
+		parenthesized_statement.statement	
+	  end	  
+	} /
+	space statement space {
+	  def statement
+		super
+	  end
+	}
+  end
+  
+  rule statement
+    comment / cmp / indexEq / globalEq / assign / require / return / equation / begin / if / unless / case / while / for / def / call / object  
+  end
+  
+  rule object
+    array / string / symbol / float / number / bool / index / globalvar / var
+  end
+
+  rule require
+    "require" space string <Require>
+  end
+  
+  rule call
+    func:var space calllist <Call>
+  end
+  
+  rule def
+    "def" space func:var space arglist
+      expressions:(expression newline)* space
+    "end" <Def> {
+      def expressions
+        super.elements.map { |e| e.expression }
+      end
+    }
+  end
+
+  rule return
+    "return" space expression <Return>
+  end
+
+  rule begin
+    "begin" newline
+      expressions:(expression newline)* space
+    rescue_clause:(
+      "rescue" newline
+         expressions:(expression newline)* space
+    )?
+    else_clause:(
+      "else" newline
+         expressions:(expression newline)* space
+    )?
+    ensure_clause:(
+      "ensure" newline
+         expressions:(expression newline)* space 
+    )? 
+    "end" <Begin> {
+      def expressions
+        super.elements.map { |e| e.expression }
+      end
+      def rescue_expressions
+        return [] if rescue_clause.text_value.empty?
+        rescue_clause.expressions.elements.map { |e| e.expression }
+      end
+	  def else_expressions
+        return [] if else_clause.text_value.empty?
+        else_clause.expressions.elements.map { |e| e.expression }
+      end
+      def ensure_expressions
+        return [] if ensure_clause.text_value.empty?
+        ensure_clause.expressions.elements.map { |e| e.expression }
+      end  
+    }
+  end
+
+  rule if
+    "if" space condition:expression space newline
+      expressions:(expression newline)* space
+	elsifs:(
+	  "elsif" condition:expression newline
+        expressions:(expression newline)* space
+	)*
+	else_clause:(
+	  "else" newline
+        expressions:(expression newline)* space
+	)?
+    "end" <If> {
+      def expressions
+        super.elements.map { |e| e.expression }
+      end
+	  def elsifs
+	    super.text_value.empty? ? [] : super.elements
+      end
+	  def else_expressions
+	    return [] if else_clause.text_value.empty?
+        else_clause.expressions.elements.map { |e| e.expression }
+      end
+    }
+  end
+
+  rule unless
+    "unless" space condition:expression space newline
+      expressions:(expression newline)* space
+	else_clause:(
+	  "else" newline
+        expressions:(expression newline)* space
+	)?
+    "end" <Unless> {
+      def expressions
+        super.elements.map { |e| e.expression }
+      end
+	  def else_expressions
+	    return [] if else_clause.text_value.empty?
+        else_clause.expressions.elements.map { |e| e.expression }
+      end
+    }
+  end
+
+  rule case
+    "case" space switch:expression space newline
+    whens:(
+	  "when" val:expression space newline
+		expressions:(expression newline)* space
+	)*
+	else_clause:(
+	  "else" newline
+        expressions:(expression newline)* space
+	)?
+    "end" <Case> {
+      def whens
+		super.text_value.empty? ? [] : super.elements
+      end
+	  def else_expressions
+	    return [] if else_clause.text_value.empty?
+        else_clause.expressions.elements.map { |e| e.expression }
+      end
+    }
+  end
+
+  rule while
+    "while" space condition:expression space newline
+      expressions:(expression newline)* space
+    "end" <While> {
+      def expressions
+        super.elements.map { |e| e.expression }
+      end
+    }
+  end
+
+  rule for
+    "for" space var space "in" space indices:parenthesized_statement space newline
+      expressions:(expression newline)* space
+    "end" <For> {
+	  def indices
+	    super.statement
+	  end
+      def expressions
+        super.elements.map { |e| e.expression }
+      end
+    }
+  end
+  
+  rule cmp
+    object space op:("&&" / "and" / "||" / "or" / "==" / "!=" / ">=" / ">" / "<=" / "<") space expression <Cmp>
+  end
+  
+  rule equation
+    object space op:("/" / "*" / "+" / "-") space expression <Equation>
+  end
+  
+  rule calllist
+    "("? space arg:parenthesized_statement more_args:(space "," space arg:parenthesized_statement)* space ")"? {
+      def args
+        [arg.statement] + more_args.elements.map { |e| e.arg.statement }
+      end
+    } /
+    "(" space ")" {
+      def args
+        []
+      end
+    }
+  end
+
+  rule arglist
+    "(" arg more_args:(space "," space arg)* ")" {
+      def args
+        [arg] + more_args.elements.map { |e| e.arg }
+      end
+    } /
+    ("(" space ")" / newline) {
+      def args
+        []
+      end
+    }
+  end
+
+  rule arg
+	space var space {
+	  def var
+	    super
+	  end
+	  def default
+	    nil
+	  end
+	} /
+	space assign space {
+	  def var
+	    assign.var
+	  end
+	  def default
+	    assign.expression
+	  end
+	}
+  end
+  
+  rule assign
+    var space "=" !"=" expression <Assign>
+  end
+
+  rule globalEq
+	globalvar:("$" [a-z] [\w]*) space "=" !"=" expression <GlobalEq>
+  end
+
+  rule indexEq
+    index space "=" !"=" expression <IndexEq>
+  end
+
+  rule index
+    var "[" expression "]" <Index>
+  end
+  
+  rule var
+    !keyword [a-z] [\w]* <Var>
+  end
+
+  rule globalvar
+    "$" ("!" / "?" / [\w]*) <GlobalVar>
+  end
+  
+  rule keyword
+    "require" / "def" / "begin" / "rescue" / "ensure" / "if" / "unless" / "while" / "for" / "case" / "when" / "else" / "end"
+  end
+
+  rule array
+	"[" expression more_indices:(space "," space expression)*  "]" <ArrayNode> {
+	  def value
+		[expression] + more_indices.elements.map { |e| e.expression }
+	  end
+	} /
+	"[" space "]" <Array> {
+	  def value
+		[]
+	  end
+	}
+  end
+
+  rule string
+    '"' (!'"' . / '\"')* '"' <StringNode> {
+      def value
+        text_value.gsub('"', '')
+      end
+    } /
+    "'" (!"\'" . / "\\'")* "'" <StringNode> {
+      def value
+        text_value.gsub("'", "")
+      end
+    }
+  end
+
+  rule symbol
+    ":" [\w]* <SymbolNode> {
+      def value
+        text_value.slice(1, text_value.length)
+      end
+    }
+  end
+
+  rule float
+    [0-9]+ "." [0-9]+ <FloatNode> {
+	  def value
+		text_value.to_f
+	  end
+	}
+  end
+  
+  rule number
+    [0-9]+ <NumberNode> {
+      def value
+        text_value.to_i
+      end
+    }
+  end
+
+  rule bool
+    "true" <BoolNode> {
+      def value
+        true
+      end
+    } / 
+	"false" <BoolNode> {
+      def value
+        false
+      end
+    }
+  end
+
+  rule block_comment
+    "=begin" (!"=end" ( ";" / (!newline .))* newline)+ "=end"
+  end
+  
+  rule comment
+    '#' ( ";" / (!newline .) )+
+  end
+  
+  rule space
+    [ \t]*
+  end
+  
+  rule newline
+    space ("\r\n"+ / [\r\n]+ / ";") space
+  end
+end

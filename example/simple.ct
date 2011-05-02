@@ -1,0 +1,69 @@
+=begin
+  A simple test...
+  Included in Citrus source code
+  v1.0
+=end
+
+require 'factorial.ct'
+
+$exitcode = 7
+
+def input
+  buf = " "
+  read(0, buf, 1)
+  puts(buf)
+end
+
+def compare
+  num = 7
+  cond = (num == 4.5 + 2.5)
+  if cond
+    puts("7 = 4.5 + 2.5")
+  end
+  if num == 6 - 3
+    puts("6 - 3 = 7")
+  else
+    puts("6 - 3 != 7")
+  end
+end
+
+def iterate
+  iteration = 10
+  while iteration >= 0
+    printf("%d ", iteration)
+    iteration = iteration - 1
+  end
+  puts("")
+  array = ["lift", "off", "and", "away"]
+  for iteration in array
+    printf("%s ", iteration)
+  end
+  puts("")
+end
+
+def handle(err)
+  begin
+    puts("beginning exception handling...")
+    if err
+      raise(" - Erred! - ")
+    end
+  rescue
+    puts($!)
+  else
+    puts(" - No Error - ")
+  ensure
+    puts("...end of exception handling")
+  end
+end
+
+puts("== input ")
+input
+puts("== compare ")
+compare
+puts("== iterate ")
+iterate
+puts("== handle ")
+handle(true)
+handle(false)
+puts("== exit ")
+exit($exitcode)

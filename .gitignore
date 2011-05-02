@@ -1,0 +1,5 @@
+*~
+pkg/*
+build/*
+Makefile
+lib/llvm-2.9/*

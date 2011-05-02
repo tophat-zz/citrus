@@ -1,0 +1,14 @@
+# Citrus factorials...
+
+def factorial(num)
+  if num == 0
+    fac = 1
+  else
+	fac = num*factorial(num-1)
+  end
+  return fac
+end
+
+puts("== factorial ")
+printf("factorial(%d): %d", 6, factorial(6))
+puts("")
