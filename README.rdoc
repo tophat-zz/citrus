@@ -32,7 +32,7 @@ As you can see, very ruby-like.
 
 Citrus requires the following libraries:
 
-* LLVM 2.8 compiled with shared libraries
+* LLVM 2.9 compiled with shared libraries
   * On Mac OS X, the quickest way is to use `brew install llvm --shared`
   * On Linux, there are usually pre-compiled packages
 * Ruby
