@@ -39,7 +39,7 @@ Citrus requires the following libraries:
 * Treetop
 * Ruby LLVM (currently building the source from Jeremy's next branch is required)
 
-Everything except LLVM is installed when running `gem install citrus-compiler`
+Everything except LLVM (and presently, ruby-llvm) is installed when running `gem install citrus-compiler`
 
 == Running
 
