@@ -18,12 +18,26 @@ module Citrus
     end
     
     def array(values)
-      ary = @builder.alloca(LLVM::Array(LLVM::Type(values.first), values.size))
-      for index in 0...values.size
-        ptr = @builder.gep(ary, [INT.from_i(0), INT.from_i(index)])
-        @builder.store(values[index], ptr)
+      return Array.create(values, @builder)
+    end
+    
+    def range(first, last, full)
+      ival = INT.from_i(-1)
+      ary = @builder.alloca(LLVM::Array(INT, 0))
+      iteration = builder.alloca(INT)
+      builder.store(first, iteration)
+      index = builder.alloca(INT)
+      builder.store(INT.from_i(0), index)
+      self.preploop(:while)
+      self.while(self.compare(full ? :<= : :<, @builder.load(iteration), last)) do |gw|
+        ival = gw.builder.load(index)
+        val = gw.builder.load(iteration)
+        ptr = gw.builder.gep(ary, [INT.from_i(0), ival])
+        gw.builder.store(val, ptr)
+        gw.builder.store(gw.equate(:+, val, gw.number(1)), iteration)
+        gw.builder.store(gw.equate(:+, ival, gw.number(1)), index)
       end
-      return ary
+      return Array.new(ary, :length => self.equate(:+, ival, self.number(1))) 
     end
     
     def string(value)
@@ -102,7 +116,7 @@ module Citrus
     end
     
     def assign_index(name, index, value)
-      ary = @locals[name].value(@builder)
+      ary = self.load(name).pointer
       ptr = @builder.gep(ary, [INT.from_i(0), index])
       @builder.store(value, ptr)
     end
@@ -163,11 +177,11 @@ module Citrus
     end
     
     def load_index(ary, index)
-      @builder.load(@builder.gep(ary, [INT.from_i(0), index]))
+      @builder.load(@builder.gep(ary.pointer, [INT.from_i(0), index]))
     end
     
     def function(name, args)
-      GlobalFunctions.add(name, args) { |g| yield g }
+      return GlobalFunctions.add(name, args) { |g| yield g }
     end
     
     def declare(name, args, ret, varargs = false)
@@ -177,7 +191,7 @@ module Citrus
     end
     
     def block
-      Block.new(@module, @function, self) { |g| yield g if block_given? }
+      return Block.new(@module, @function, self) { |g| yield g if block_given? }
     end
     
     def condition(cond, thenblock, elseblock, elsifs=[])
@@ -276,8 +290,7 @@ module Citrus
       @builder.position_at_end(@basic_block)
       self.resolve_conflict("for", generator, self)
       @basic_block = self.block.bb
-      size = LLVM::C.LLVMGetArrayLength(LLVM::Type(indices).element_type)
-      cond = self.compare(:<, self.load("for"), self.number(size))
+      cond = self.compare(:<, self.load("for"), indices.length)
       @builder.cond(cond, generator.basic_block, @basic_block)
       @builder.position_at_end(@basic_block)
     end

@@ -206,6 +206,12 @@ module Citrus
     end
   end
   
+  class RangeNode < Node
+    def codegen(g)
+      g.range(first.codegen(g), last.codegen(g).last, self.full?)
+    end
+  end
+  
   class StringNode < Node
     def codegen(g)
       g.string(value)

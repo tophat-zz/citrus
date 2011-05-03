@@ -2,7 +2,7 @@
 
 Author::	Mac Malone
 License::	See LICENSE
-Copyright::	Copyright (c) 2010 Mac Malone
+Copyright::	Copyright (c) 2011 Mac Malone
 
 Citrus is a simple dynamically typed linear language written in Ruby, Treetop, and LLVM. It is meant to be an example of how to write a basic compiler.
 
@@ -10,7 +10,7 @@ Being linear, it could be called very c-like, but it has been written to have a 
 
 * Dynamically typed
 * Extremely ruby-like syntax
-* Integer, Float, String, Boolean, and Array types
+* Integer, Float, String, Boolean, Array, and Range types
 * Easy integration of C functions into the API
 
 It's prime examples are in the example directory, but here is an excerpt from factorial.ct:
@@ -37,7 +37,7 @@ Citrus requires the following libraries:
   * On Linux, there are usually pre-compiled packages
 * Ruby
 * Treetop
-* Ruby LLVM 2.9.1
+* Ruby LLVM (currently building the source from Jeremy's next branch is required)
 
 Everything except LLVM is installed when running `gem install citrus-compiler`
 

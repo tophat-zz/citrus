@@ -9,12 +9,12 @@ spec = Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   
   s.name = 'citrus-compiler'
-  s.version = '0.8.0'
+  s.version = '0.8.1'
   s.summary = "Linear compiler written in Ruby"
   
   s.requirements << "LLVM v2.9"
   s.add_dependency('treetop', '>= 1.4.9')
-  s.add_dependency('ruby-llvm', '>= 2.9.1')
+  #s.add_dependency('ruby-llvm', '>= 2.9.1')
   s.files = Dir['lib/**/*.rb', 'bin/*', 'example/*']
   s.require_path = 'lib'
   s.bindir = 'bin'

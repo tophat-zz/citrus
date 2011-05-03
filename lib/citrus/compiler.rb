@@ -1,4 +1,5 @@
 require "citrus/compiler/generator"
+require "citrus/compiler/array"
 require "citrus/compiler/block"
 require "citrus/compiler/function"
 require "citrus/compiler/variable"

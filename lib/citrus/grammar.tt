@@ -37,7 +37,7 @@ grammar Citrus
   end
   
   rule object
-    array / string / symbol / float / number / bool / index / globalvar / var
+    array / range / string / symbol / float / number / bool / index / globalvar / var
   end
 
   rule require
@@ -273,6 +273,19 @@ grammar Citrus
 	"[" space "]" <Array> {
 	  def value
 		[]
+	  end
+	}
+  end
+
+  rule range
+	first:(number / call / globalvar / var) space "..." space last:expression <RangeNode> {
+	  def full?
+	    return false
+	  end
+	} / 
+	first:(number / call / globalvar / var) space ".." space last:expression <RangeNode> {
+	  def full?
+	    return true
 	  end
 	}
   end

@@ -39,6 +39,10 @@ def iterate
     printf("%s ", iteration)
   end
   puts("")
+  for iteration in 1..5
+    printf("%d ", iteration)
+  end
+  puts("")
 end
 
 def handle(err)

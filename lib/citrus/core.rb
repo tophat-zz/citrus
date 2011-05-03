@@ -1,9 +1,9 @@
 require "rubygems"
 
-=begin # Custom LLVM Loading (for me only)
+if File.directory?("#{File.dirname(__FILE__)}/../llvm-2.9") # Custom LLVM Loading (for me only)
 require "llvm/load"
 LLVM.load("#{File.dirname(__FILE__)}/../llvm-2.9")
-=end
+end
 
 require 'llvm/core'
 require 'llvm/execution_engine'
