@@ -45,7 +45,7 @@ grammar Citrus
   end
 
   rule not
-    "!" space object <Not>
+    ("!" / "not") space object <Not>
   end
 
   rule require

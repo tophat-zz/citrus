@@ -28,9 +28,7 @@ module Citrus
       @builder.store(first, iteration)
       index = @builder.alloca(INT)
       @builder.store(INT.from_i(0), index)
-      ib = @builder.insert_block
       self.preploop(:while)
-      lb = @builder.insert_block
       self.while(self.compare(full ? :<= : :<, @builder.load(iteration), last)) do |gw|
         ival = gw.builder.load(index)
         val = gw.builder.load(iteration)
