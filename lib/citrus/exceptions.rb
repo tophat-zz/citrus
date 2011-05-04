@@ -1,30 +1,36 @@
 module Citrus  
-  class SyntaxError < RuntimeError  
+  class SyntaxError < ScriptError  
     def initialize
       line = $parser.failure_line
       col = $parser.failure_column
       str = $parser.input.lines.to_a[line-1]
       str = str.slice(col-1, str.length).delete($/)
       str = "file end" if str.empty?
-      puts $parser.failure_reason
       super("Unexpected #{str} at #{line}:#{col}.")
     end 
   end
   
-  class NameError < RuntimeError  
+  class StandardError < RuntimeError
+    def initialize(message)
+      line = $parser.input.line_of($pindex)
+      col = $parser.input.column_of($pindex)
+      super("#{message} at #{line}:#{col}.")
+    end
+  end
+  
+  class NameError < StandardError  
     def initialize(name, index=nil, ff=false)
-      index ||= $parser.input.index(name)
-      line = $parser.input.line_of(index)
-      col = $parser.input.column_of(index)
-      super("Undefined #{ff ? "" : "local variable or "}function '#{name}' at #{line}:#{col}.")
+      super("Undefined #{ff ? "" : "local variable or "}function '#{name}")
     end 
   end
   
   class NotFoundError < StandardError
     def initialize(file)
-      super("No such file or directory - #{file}.")
+      super("No such file or directory - #{file}")
     end
   end
+  
+  class ArgumentError < StandardError; end
   
   def self.error(error)
     puts("#{error.message} (#{error.class.to_s.split('::').last})")

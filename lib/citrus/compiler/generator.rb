@@ -22,13 +22,15 @@ module Citrus
     end
     
     def range(first, last, full)
-      ival = INT.from_i(-1)
+      ival = nil
       ary = @builder.alloca(LLVM::Array(INT, 0))
-      iteration = builder.alloca(INT)
-      builder.store(first, iteration)
-      index = builder.alloca(INT)
-      builder.store(INT.from_i(0), index)
+      iteration = @builder.alloca(INT)
+      @builder.store(first, iteration)
+      index = @builder.alloca(INT)
+      @builder.store(INT.from_i(0), index)
+      ib = @builder.insert_block
       self.preploop(:while)
+      lb = @builder.insert_block
       self.while(self.compare(full ? :<= : :<, @builder.load(iteration), last)) do |gw|
         ival = gw.builder.load(index)
         val = gw.builder.load(iteration)
@@ -37,7 +39,8 @@ module Citrus
         gw.builder.store(gw.equate(:+, val, gw.number(1)), iteration)
         gw.builder.store(gw.equate(:+, ival, gw.number(1)), index)
       end
-      return Array.new(ary, :length => self.equate(:+, ival, self.number(1))) 
+      ival = @builder.load(index)
+      return Array.new(ary, :length => ival) 
     end
     
     def string(value)
@@ -54,6 +57,10 @@ module Citrus
     
     def bool(value)
       BOOL.from_i(value ? 1 : 0)
+    end
+    
+    def negate(value)
+      @builder.neg(value)
     end
     
     def not(value)

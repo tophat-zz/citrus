@@ -33,11 +33,19 @@ grammar Citrus
   end
   
   rule statement
-    comment / cmp / indexEq / globalEq / assign / require / return / equation / begin / if / unless / case / while / for / def / call / object  
+    comment / cmp / indexEq / globalEq / assign / require / return / equation / begin / if / unless / case / while / for / def / call / neg / not / object  
   end
   
   rule object
     array / range / string / symbol / float / number / bool / index / globalvar / var
+  end
+
+  rule neg
+    "-" space object <Neg>
+  end
+
+  rule not
+    "!" space object <Not>
   end
 
   rule require
@@ -118,6 +126,29 @@ grammar Citrus
 	    return [] if else_clause.text_value.empty?
         else_clause.expressions.elements.map { |e| e.expression }
       end
+    } /
+    condition:object space "?" space expression else_clause:(space ":" space expression)? <If> {
+      def expressions
+        super.elements.map { |e| e.expression }
+      end
+	  def elsifs
+	    return []
+      end
+	  def else_expressions
+	    return [] if else_clause.text_value.empty?
+        return else_clause.expression
+      end
+    } /
+    object space "if" space condition:expression <If> {
+      def expressions
+        return [expression]
+      end
+	  def elsifs
+	    return []
+      end
+	  def else_expressions
+	    return []
+      end
     }
   end
 
@@ -135,6 +166,14 @@ grammar Citrus
 	  def else_expressions
 	    return [] if else_clause.text_value.empty?
         else_clause.expressions.elements.map { |e| e.expression }
+      end
+    } /
+    object space "unless" space condition:expression <If> {
+      def expressions
+        return [expression]
+      end
+	  def else_expressions
+	    return []
       end
     }
   end

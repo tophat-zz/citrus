@@ -5,6 +5,7 @@ module Citrus
     end
     
     def codegen(context)
+      $pindex = self.interval.first
     end
   end
   Node = Treetop::Runtime::SyntaxNode
@@ -53,6 +54,18 @@ module Citrus
     end
   end
   
+  class Neg < Node
+    def codegen(g)
+      g.negate(object.codegen(g))
+    end
+  end
+  
+  class Not < Node
+    def codegen(g)
+      g.not(object.codegen(g))
+    end
+  end
+  
   class Require < Node
     def codegen(g)
       file = string.value
@@ -72,7 +85,7 @@ module Citrus
       begin
         g.call(func.value, *arg_values)
       rescue
-        Citrus.error(NameError.new(func.value, self.interval.first, true))
+        Citrus.error(NameError.new(func.value, true))
       end
     end
   end
@@ -124,7 +137,8 @@ module Citrus
       fb = g.block do |gb|
         else_expressions.each { |e| e.codegen(gb) }
       end
-      g.condition(condition.codegen(g).last, tb, fb, elfs)
+      cond = condition.is_a?(Expression) ? condition.codegen(g).last : condition.codegen(g)
+      g.condition(cond, tb, fb, elfs)
     end
   end
   
@@ -194,7 +208,7 @@ module Citrus
         begin
           g.call(value)
         rescue NoMethodError
-          Citrus.error(NameError.new(value, self.interval.first))
+          Citrus.error(NameError.new(value))
         end
       end
     end
@@ -208,6 +222,11 @@ module Citrus
   
   class RangeNode < Node
     def codegen(g)
+      fval = first.codegen(g)
+      lval = last.codegen(g).last
+      unless LLVM::Type(fval) == INT.type && LLVM::Type(lval) == INT.type
+        Citrus.error(ArgumentError.new("Bad value for range"))
+      end
       g.range(first.codegen(g), last.codegen(g).last, self.full?)
     end
   end
