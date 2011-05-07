@@ -2,7 +2,7 @@ module Citrus
   class Variable
     
     attr_reader :type
-    #attr_reader :pointer
+    attr_reader :pointer
     
     def initialize(value, builder)
       @value = nil

@@ -26,19 +26,32 @@ module Citrus
   
   class Assign < Node
     def codegen(g)
-      g.assign(var.value, expression.codegen(g).last)
+      val = expression.codegen(g).last
+      unless op.value.empty?
+        val = g.equate(op.value, g.load(var.value), expression.codegen(g).last)
+      end
+      g.assign(var.value, val)
     end
   end
   
   class GlobalEq < Node
     def codegen(g)
-      g.assign_global(globalvar.value, expression.codegen(g).last)
+      val = expression.codegen(g).last
+      unless op.value.empty?
+        val = g.load_index(op.value, g.load_global(globalvar.value), expression.codegen(g).last)
+      end
+      g.assign_global(globalvar.value, val)
     end
   end
   
   class IndexEq < Node
     def codegen(g)
-      g.assign_index(index.var.value, index.expression.codegen(g).last, expression.codegen(g).last)
+      val = expression.codegen(g).last
+      unless op.value.empty?
+        ival = g.load_index(index.var.value, index.expression.codegen(g).last)
+        val = g.equate(op.value, ival, expression.codegen(g).last)
+      end
+      g.assign_index(index.var.value, index.expression.codegen(g).last, val)
     end
   end
   

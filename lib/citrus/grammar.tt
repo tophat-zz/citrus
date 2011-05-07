@@ -276,15 +276,15 @@ grammar Citrus
   end
   
   rule assign
-    var space "=" !"=" expression <Assign>
+    var space op:("/" / "*" / "+" / "-")? "=" !"=" expression <Assign>
   end
 
   rule globalEq
-	globalvar:("$" [a-z] [\w]*) space "=" !"=" expression <GlobalEq>
+	globalvar:("$" [a-z] [\w]*) space op:("/" / "*" / "+" / "-")? "=" !"=" expression <GlobalEq>
   end
 
   rule indexEq
-    index space "=" !"=" expression <IndexEq>
+    index space op:("/" / "*" / "+" / "-")? "=" !"=" expression <IndexEq>
   end
 
   rule index

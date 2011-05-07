@@ -17,6 +17,10 @@ module Citrus
       return @generator.locals
     end
     
+    def method_missing(symbol, *args, &block)
+      @generator.send(symbol, *args, &block)
+    end
+    
     private
     
     def build_block

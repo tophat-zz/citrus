@@ -38,7 +38,7 @@ module Citrus
         gw.builder.store(gw.equate(:+, ival, gw.number(1)), index)
       end
       ival = @builder.load(index)
-      return Array.new(ary, :length => ival) 
+      return Array.new(ary, ival) 
     end
     
     def string(value)
@@ -121,8 +121,16 @@ module Citrus
     end
     
     def assign_index(name, index, value)
-      ary = self.load(name).pointer
-      ptr = @builder.gep(ary, [INT.from_i(0), index])
+      ary = self.load(name)
+      length = @builder.alloca(INT)
+      @builder.store(ary.length, length)
+      tb = self.block do |gb|
+        gb.builder.store(gb.equate(:+, index, gb.number(1)), length)
+      end
+      cond = gb.compare(:<=, ary.length, index)
+      self.condition(cond, tb.bb, self.block.bb)
+      ary.length = @builder.load(length)
+      ptr = @builder.gep(ary.pointer, [INT.from_i(0), index])
       @builder.store(value, ptr)
     end
     
@@ -224,7 +232,7 @@ module Citrus
     def case(val, cases, elseblock)
       ncases = {}
       for pair in cases
-        ncases[pair[0].bb] = pair[1]
+        ncases[pair[0]] = pair[1].bb
       end
       switch = @builder.switch(val, elseblock.bb, ncases)
       @basic_block = self.block.bb

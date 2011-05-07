@@ -1,6 +1,7 @@
 module Citrus
   class Array
     
+    attr_writer :length
     attr_accessor :pointer
     
     def self.create(values, builder)
@@ -12,16 +13,16 @@ module Citrus
       self.new(ary)
     end
     
-    def initialize(pointer, props={})
+    def initialize(pointer, length=nil)
       @pointer = pointer
-      @length = props[:length]
+      @length = length
     end
     
     def length
       unless @length.nil?
         return @length
       else
-        return INT.from_i(LLVM::C.LLVMGetArrayLength(LLVM::Type(@pointer).element_type))
+        return @length = INT.from_i(LLVM::C.LLVMGetArrayLength(LLVM::Type(@pointer).element_type))
       end
     end
   
