@@ -10,7 +10,7 @@ Being linear, it could be called very c-like, but it has been written to have a 
 
 * Dynamically typed
 * Extremely ruby-like syntax
-* Integer, Float, String, Boolean, Array, and Range types
+* Integer, Float, String, Symbol, Boolean, Array, and Range types
 * Easy integration of C functions into the API
 
 It's prime examples are in the example directory, but here is an excerpt from factorial.ct:

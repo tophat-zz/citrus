@@ -9,7 +9,7 @@ spec = Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   
   s.name = 'citrus-compiler'
-  s.version = '0.8.2'
+  s.version = '0.8.3'
   s.summary = "Linear compiler written in Ruby"
   
   s.requirements << "LLVM v2.9"
