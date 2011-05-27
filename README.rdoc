@@ -55,9 +55,20 @@ If citrus is run without -c it JIT complies the code, running it in place.
 
 == Problems & Todos
 
+Todos:
 * Hashs
 * Create a standard library
 * Better dynamically typed arrays (using structures)
 * Better exception handling (currently only works semi-effectively within begin blocks)
 * Garbage Collection
+
+Known Problems:
+* Array length not retained well
+* #{} string substitution only works with one #{}
+* The resolve_conflicts function only works with one conflict
+* Float manipulation (+, -, *, /, ==, <, <=, =>, >) doesn't work
+* Variant functions are very target specific (might not currently work on non-osx systems)
+* Very few outcomes are tested (citrus may be very buggy)
+
+NOTE: I believe I have traced some of these problems to the object conversion functions (otos, otoi, otof, etc.), but can not figure out how to fix them. If anyone knowledgable at LLVM or LLVM IR would like to help it would be greatly appreciated (use -i on the compiler to output LLVM IR for a citrus program).
 	

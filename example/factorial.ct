@@ -10,5 +10,4 @@ def factorial(num)
 end
 
 puts("== factorial ")
-printf("factorial(%d): %d", 6, factorial(6))
-puts("")
+puts("factorial(6): #{factorial(6)}")

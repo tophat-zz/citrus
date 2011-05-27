@@ -9,9 +9,10 @@ module Citrus
     
     def initialize(mod, function, parent=nil)
       @module = mod
-      @locals = {}
+      @locals = {} 
       @parent = parent
       @function = function
+      @locals = parent.locals.clone unless parent.nil?
       @basic_block = @function.basic_blocks.append
       @builder = LLVM::Builder.create
       @builder.position_at_end(@basic_block)
@@ -22,57 +23,51 @@ module Citrus
     end
     
     def range(first, last, full)
-      ival = nil
-      ary = @builder.alloca(LLVM::Array(INT, 0))
-      iteration = @builder.alloca(INT)
-      @builder.store(first, iteration)
-      index = @builder.alloca(INT)
-      @builder.store(INT.from_i(0), index)
+      ary = @builder.alloca(LLVM::Array(Object.type, 0))
+      iteration = @builder.alloca(Object.type)
+      @builder.store(first.pointer, iteration)
+      index = @builder.alloca(Object.type)
+      @builder.store(self.number(0).pointer, index)
+      li = last.to_i(self)
       self.preploop(:while)
-      self.while(self.compare(full ? :<= : :<, @builder.load(iteration), last)) do |gw|
-        ival = gw.builder.load(index)
-        val = gw.builder.load(iteration)
-        ptr = gw.builder.gep(ary, [INT.from_i(0), ival])
-        gw.builder.store(val, ptr)
-        gw.builder.store(gw.equate(:+, val, gw.number(1)), iteration)
-        gw.builder.store(gw.equate(:+, ival, gw.number(1)), index)
+      self.while(self.compare(full ? :<= : :<, Object.new(@builder.load(iteration)), li)) do |gw|
+        ival = Object.new(gw.builder.load(index))
+        val = Object.new(gw.builder.load(iteration))
+        ptr = gw.builder.gep(ary, [INT.from_i(0), ival.to_i(gw)])
+        gw.builder.store(val.pointer, ptr)
+        gw.builder.store(gw.equate(:+, val, gw.number(1)).pointer, iteration)
+        gw.builder.store(gw.equate(:+, ival, gw.number(1)).pointer, index)
       end
-      ival = @builder.load(index)
+      ival = Object.new(@builder.load(index))
       return Array.new(ary, ival) 
     end
     
     def string(value)
-      ptr = GlobalStrings.pointer(value)
+      Object.create(GlobalStrings.pointer(value), @builder)
     end
     
     def float(value)
-      FLOAT.from_f(value)
+      Object.create(FLOAT.from_f(value), @builder)
     end
     
     def number(value)
-      INT.from_i(value)
+      Object.create(INT.from_i(value), @builder)
     end
     
     def bool(value)
-      BOOL.from_i(value ? 1 : 0)
+      Object.create(BOOL.from_i(value ? 1 : 0), @builder)
     end
     
     def negate(value)
-      @builder.neg(value)
+      Object.create(@builder.neg(value.to_i(self)), @builder)
     end
     
     def not(value)
-      @builder.not(value)
+      Object.create(@builder.not(value.to_b(self)), @builder)
     end
     
     def call(func, *args)
-      begin
-        GlobalFunctions.named(func).call(args, @builder)
-      rescue NoMethodError # for C methods
-        f = @module.functions.named(func)
-        raise NoMethodError if f.nil?
-        @builder.call(f, *args)
-      end
+      GlobalFunctions.named(func).call(args, self)
     end
     
     def resolve_conflicts(*gens)
@@ -80,12 +75,12 @@ module Citrus
       gens.each{|g| locals += g.locals.keys}
       stat = locals.inject(Hash.new(0)){|h, e| h[e]+=1; h}
       stat.select{|k, v| v > 1}.collect{|a| a[0]}.each do |k|
-        resolve_conflict(k, *gens)
+        resolve_conflict(k, *gens) unless @locals.has_key?(k)
       end
     end
     
     def resolve_conflict(name, *gens)
-      ty = INT
+      ty = Object.type
       nodes = {}
       gens.select{|g| g.locals.has_key?(name)}.each do |g|
         bb = g.basic_block
@@ -93,15 +88,15 @@ module Citrus
         builder = LLVM::Builder.create
         if bb == @builder.insert_block && !nodes.has_key?(bb.previous)
           builder.position_before(bb.previous.instructions.last)
-          nodes[bb.previous] = var.value(builder)
+          nodes[bb.previous] = var.value(builder).pointer
         else
           builder.position_before(bb.instructions.last)
-          nodes[bb] = var.value(builder)
+          nodes[bb] = var.value(builder).pointer
         end
         builder.dispose
       end
       ptr = @builder.phi(ty, nodes)
-      self.assign(name, ptr)
+      self.assign(name, Object.new(ptr, @builder))
     end
     
     def assign(name, value)
@@ -137,52 +132,34 @@ module Citrus
     def compare(op, lval, rval)
       case op.to_s
       when *CMP_MAPPING.keys
-        if LLVM::Type(lval) == FLOAT.type || LLVM::Type(rval) == FLOAT.type
-          symbol = "o#{CMP_MAPPING[op.to_s].to_s}".to_sym
-          if LLVM::Type(lval) != FLOAT.type
-            lval = @builder.ui2fp(lval, FLOAT.type)
-          elsif LLVM::Type(rval) != FLOAT.type
-            rval = @builder.ui2fp(rval, FLOAT.type)
-          end
-          @builder.fcmp(symbol, lval, rval)
-        else
-          symbol = CMP_MAPPING[op.to_s]
-          symbol = "s#{symbol.to_s}".to_sym unless symbol == :eq || symbol == :ne
-          @builder.icmp(symbol, lval, rval)
-        end
+        #meth_name = Citrus.const_get(CMP_MAPPING[op.to_s].to_s.upcase.to_sym)
+        #return Object.new(@builder.call(@module.functions.named(meth_name), lval.pointer, rval.pointer))
+        pointer = @builder.alloca(Object.type)
+        symbol = CMP_MAPPING[op.to_s]
+        symbol = "s#{symbol.to_s}".to_sym unless symbol == :eq || symbol == :ne
+        struct = Object.create(@builder.icmp(symbol, lval.to_i(self), rval.is_a?(Object) ? rval.to_i(self) : rval), @builder)
+        @builder.store(struct.pointer, pointer)
+        return Object.new(@builder.load(pointer))
       when "&&", "and"
-        @builder.and(lval, rval)
+        Object.create(@builder.and(lval.to_b(self), rval.to_b(self)), @builder)
       when "||", "or"
-        @builder.or(lval, rval)
+        Object.create(@builder.or(lval.to_b(self), rval.to_b(self)), @builder)
       end
     end
     
     def equate(op, lval, rval)
-      if LLVM::Type(lval) == FLOAT.type || LLVM::Type(rval) == FLOAT.type
-        symbol = "f#{EQU_MAPPING[op.to_s].to_s}".to_sym
-        if LLVM::Type(lval) != FLOAT.type
-          lval = @builder.ui2fp(lval, FLOAT.type)
-        elsif LLVM::Type(rval) != FLOAT.type
-          rval = @builder.ui2fp(rval, FLOAT.type)
-        end
-        @builder.send(symbol, lval, rval)
-      else
-        symbol = EQU_MAPPING[op.to_s]
-        symbol = :sdiv if symbol == :div
-        @builder.send(symbol, lval, rval)
-      end
-    end
-    
-    def vars
-      return @parent.nil? ? @locals : @locals.merge(@parent.vars) 
+      #meth_name = Citrus.const_get(EQU_MAPPING[op.to_s].to_s.upcase.to_sym)
+      #return Object.new(@builder.call(@module.functions.named(meth_name), lval.pointer, rval.pointer))
+      pointer = @builder.alloca(Object.type)
+      symbol = EQU_MAPPING[op.to_s]
+      symbol = :sdiv if symbol == :div
+      struct = Object.create(@builder.send(symbol, lval.to_i(self), rval.to_i(self)), @builder)
+      @builder.store(struct.pointer, pointer)
+      return Object.new(@builder.load(pointer))
     end
     
     def load(name)
-      if @locals.has_key?(name)
-        @locals[name].value(@builder)
-      else
-        self.vars[name].value(@builder)
-      end
+      @locals[name].value(@builder)
     end
     
     def load_global(name)
@@ -190,17 +167,15 @@ module Citrus
     end
     
     def load_index(ary, index)
-      @builder.load(@builder.gep(ary.pointer, [INT.from_i(0), index]))
+      Object.new(@builder.load(@builder.gep(ary.pointer, [INT.from_i(0), index.to_i(self)])))
     end
     
     def function(name, args)
       return GlobalFunctions.add(name, args) { |g| yield g }
     end
     
-    def declare(name, args, ret, varargs = false)
-      rtype = DEC_MAPPING[ret.to_sym]
-      atypes = args.map{|arg| DEC_MAPPING[arg.to_sym]}
-      @module.functions.add(name.to_s, LLVM::Type.function(atypes, rtype, :varargs => varargs))
+    def declare(name, args, ret)
+      return GlobalFunctions.declare(name, args, ret)
     end
     
     def block
@@ -208,10 +183,10 @@ module Citrus
     end
     
     def condition(cond, thenblock, elseblock, elsifs=[])
+      efbs = []
       @basic_block = self.block.bb
       eb = elsifs.empty? ? elseblock : self.block
-      efbs = []
-      @builder.cond(cond, thenblock.bb, eb.bb)
+      @builder.cond(cond.to_b(self), thenblock.bb, eb.bb)
       for i in 0...elsifs.length
         efbs += eb
         @builder.position_at_end(eb.bb)
@@ -238,17 +213,17 @@ module Citrus
       @basic_block = self.block.bb
       @builder.position_at_end(elseblock.bb)
       @builder.br(@basic_block)
-      ncases.each_value do |c|
-        @builder.position_at_end(c[1])
+      ncases.each_value do |bb|
+        @builder.position_at_end(bb)
         @builder.br(@basic_block)
       end
       @builder.position_at_end(@basic_block)
-      self.resolve_conflicts(elseblock, *cases.keys)
+      self.resolve_conflicts(elseblock, *cases.values)
     end
     
     def begin(rblock, elblock, enblock)
       cond = self.compare(:==, self.load_global(STS_GLOBAL), self.number(1))
-      @builder.cond(cond, rblock.bb, elblock.bb)
+      @builder.cond(cond.to_b(self), rblock.bb, elblock.bb)
       @basic_block = self.block.bb
       @builder.position_before(rblock.bb.instructions.first)
       self.assign_global(STS_GLOBAL, self.number(0))
@@ -272,7 +247,7 @@ module Citrus
     # (specifically before calculating the conditions for the loop)
     def preploop(looptype=nil, *args)
       if looptype == :for
-        self.assign("for", INT.from_i(0))
+        self.assign("for", self.number(0))
         self.assign(args[0], self.load_index(args[1], self.number(0)))
       end
       @basic_block = self.block.bb
@@ -289,7 +264,7 @@ module Citrus
       self.resolve_conflicts(generator, self)
       @builder.position_at_end(@basic_block)
       @basic_block = self.block.bb
-      @builder.cond(cond, generator.basic_block, @basic_block)
+      @builder.cond(cond.to_b(self), generator.basic_block, @basic_block)
       @builder.position_at_end(@basic_block)
     end
     
@@ -303,13 +278,14 @@ module Citrus
       @builder.position_at_end(@basic_block)
       self.resolve_conflict("for", generator, self)
       @basic_block = self.block.bb
-      cond = self.compare(:<, self.load("for"), indices.length)
-      @builder.cond(cond, generator.basic_block, @basic_block)
+      cond = self.compare(:<, self.load("for"), indices.length(@builder))
+      @builder.cond(cond.to_b(self), generator.basic_block, @basic_block)
       @builder.position_at_end(@basic_block)
     end
     
-    def return(value=self.number(0))
+    def return(value=nil)
       unless @finished
+        value ||= self.number(0)
         @function.return(value, @builder)
         @finished = true
       end

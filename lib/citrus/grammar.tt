@@ -330,15 +330,21 @@ grammar Citrus
   end
 
   rule string
-    '"' (!'"' . / '\"')* '"' <StringNode> {
+    '"' subs:(!'"' !'#{' . / '\"' / '#{' space expression space '}')* '"' <StringNode> {
       def value
         text_value.gsub('"', '')
       end
+	  def fsubs
+	  	subs.elements.map{ |sub| sub if sub.respond_to?(:expression) }.compact
+	  end
     } /
-    "'" (!"\'" . / "\\'")* "'" <StringNode> {
+    "'" (!"'" . / "\\'")* "'" <StringNode> {
       def value
         text_value.gsub("'", "")
       end
+	  def fsubs
+		return []
+	  end
     }
   end
 

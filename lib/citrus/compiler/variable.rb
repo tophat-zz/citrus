@@ -8,24 +8,22 @@ module Citrus
       @value = nil
       if value.is_a?(Citrus::Array)
         @value = value
-        @type = LLVM::Type(value.pointer)
-      else
-        @type = LLVM::Type(value)
       end
+      @type = LLVM::Type(value.pointer)
       build_initialize(value, builder)
     end
     
     def assign(value, builder)
       if value.is_a?(Citrus::Array)
         @value = value
-        @type = LLVM::Type(value.pointer)
       end
+      @type = LLVM::Type(value.pointer)
       build_assign(value, builder)
     end
     
     def value(builder)
       val = build_load(builder)
-      return @value.nil? ? val : @value
+      return @value.nil? ? Object.new(val, builder) : @value
     end
     
     private
@@ -36,7 +34,7 @@ module Citrus
         return
       end
       @pointer = builder.alloca(@type)
-      builder.store(value, @pointer)
+      builder.store(value.pointer, @pointer)
     end
     
     def build_assign(value, builder)
@@ -44,12 +42,7 @@ module Citrus
         @pointer = value.pointer
         return
       end
-      type = LLVM::Type(value)
-      unless type == @type
-        @type = type
-        @pointer = builder.alloca(type)
-      end
-      builder.store(value, @pointer)
+      builder.store(value.pointer, @pointer)
     end
     
     def build_load(builder)
@@ -70,20 +63,12 @@ module Citrus
     
     def build_initialize(value, builder)
       @pointer = @module.globals.add(@type, @name)
-      if value.is_a?(Citrus::Array)
-        @pointer.initializer = value.pointer
-      else
-        @pointer.initializer = value
-      end
+      @pointer.initializer = Object.type.null
+      builder.store(value.pointer, @pointer)
     end
     
     def build_assign(value, builder)
-      if value.is_a?(Citrus::Array)
-        builder.store(value.pointer, @pointer)
-      else
-        @type = LLVM::Type(value)
-        builder.store(value, @pointer)
-      end
+      builder.store(value.pointer, @pointer)
     end
     
     def build_load(builder)

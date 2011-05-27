@@ -5,10 +5,10 @@ module Citrus
     attr_accessor :pointer
     
     def self.create(values, builder)
-      ary = builder.alloca(LLVM::Array(LLVM::Type(values.first), values.size))
+      ary = builder.alloca(LLVM::Array(Object.type, values.size))
       for index in 0...values.size
         ptr = builder.gep(ary, [INT.from_i(0), INT.from_i(index)])
-        builder.store(values[index], ptr)
+        builder.store(values[index].pointer, ptr)
       end
       self.new(ary)
     end
@@ -18,11 +18,11 @@ module Citrus
       @length = length
     end
     
-    def length
+    def length(builder)
       unless @length.nil?
         return @length
       else
-        return @length = INT.from_i(LLVM::C.LLVMGetArrayLength(LLVM::Type(@pointer).element_type))
+        return @length = Object.create(INT.from_i(LLVM::C.LLVMGetArrayLength(LLVM::Type(@pointer).element_type)), builder)
       end
     end
   

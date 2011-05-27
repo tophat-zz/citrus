@@ -1,3 +1,4 @@
+require "citrus/compiler/object"
 require "citrus/compiler/generator"
 require "citrus/compiler/array"
 require "citrus/compiler/block"

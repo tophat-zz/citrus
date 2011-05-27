@@ -16,9 +16,9 @@ end
 
 def compare
   num = 7
-  cond = (num == 4.5 + 2.5)
+  cond = (7 == 4 + 3)
   if cond
-    puts("7 = 4.5 + 2.5")
+    puts("7 = 4 + 3")
   end
   if num == 6 - 3
     puts("6 - 3 = 7")
@@ -30,17 +30,17 @@ end
 def iterate
   iteration = 10
   while iteration >= 0
-    printf("%d ", iteration)
+	print("#{iteration} ")
     iteration -= 1
   end
   puts("")
   array = ["lift", "off", "and", "away"]
   for iteration in array
-    printf("%s ", iteration)
+    print("#{iteration} ")
   end
   puts("")
   for iteration in 1..5
-    printf("%d ", iteration)
+	print("#{iteration} ")
   end
   puts("")
 end

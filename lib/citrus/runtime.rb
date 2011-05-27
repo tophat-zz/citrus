@@ -3,29 +3,25 @@ module Citrus
     
     def self.build_lib(generator)
       @ct = generator
-      build_clib
-      build_globals
-      build_raise
+      require 'citrus/runtime/clib'
+      require 'citrus/runtime/syslib'
+      require 'citrus/runtime/stdlib'
     end
     
-    def self.build_clib
-      @ct.declare(:printf, [:string], :int, true)
-      @ct.declare(:puts, [:string], :int)
-      @ct.declare(:read, [:int, :string, :int], :int)
-      @ct.declare(:exit, [:int], :int)
-    end
-    
-    def self.build_globals
-      @ct.assign_global(ERR_GLOBAL, @ct.string(""))
-      @ct.assign_global(STS_GLOBAL, @ct.number(0))
-    end
-    
-    def self.build_raise
-      func = @ct.function("raise", ["msg"]) do |gf|
-        gf.assign_global(ERR_GLOBAL, gf.load("msg"))
-        gf.assign_global(STS_GLOBAL, gf.number(1))
+    def self.sprintf
+      unless @sprintf
+        return @sprintf = @ct.module.functions.add("__sprintf_chk", [PCHAR, I32, INT, PCHAR], I32, :varargs => true)
+      else
+        return @sprintf
       end
-      func.force_types([PCHAR], INT)
+    end
+    
+    def self.printf
+      unless @printf
+        return @printf = @ct.module.functions.add("printf", [PCHAR], I32, :varargs => true)
+      else
+        return @printf
+      end
     end
     
   end

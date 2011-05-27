@@ -28,7 +28,7 @@ module Citrus
     def codegen(g)
       val = expression.codegen(g).last
       unless op.value.empty?
-        val = g.equate(op.value, g.load(var.value), expression.codegen(g).last)
+        val = g.equate(op.value, var.codegen(g), expression.codegen(g).last)
       end
       g.assign(var.value, val)
     end
@@ -48,8 +48,7 @@ module Citrus
     def codegen(g)
       val = expression.codegen(g).last
       unless op.value.empty?
-        ival = g.load_index(index.var.value, index.expression.codegen(g).last)
-        val = g.equate(op.value, ival, expression.codegen(g).last)
+        val = g.equate(op.value, index.codegen(g), expression.codegen(g).last)
       end
       g.assign_index(index.var.value, index.expression.codegen(g).last, val)
     end
@@ -97,7 +96,8 @@ module Citrus
       arg_values = calllist.args.map { |arg| arg.codegen(g) }
       begin
         g.call(func.value, *arg_values)
-      rescue
+      rescue Exception => e
+        raise e
         Citrus.error(NameError.new(func.value, true))
       end
     end
@@ -235,18 +235,26 @@ module Citrus
   
   class RangeNode < Node
     def codegen(g)
-      fval = first.codegen(g)
-      lval = last.codegen(g).last
-      unless LLVM::Type(fval) == INT.type && LLVM::Type(lval) == INT.type
-        Citrus.error(ArgumentError.new("Bad value for range"))
-      end
       g.range(first.codegen(g), last.codegen(g).last, self.full?)
     end
   end
   
   class StringNode < Node
     def codegen(g)
-      g.string(value)
+      val = self.value.clone
+      svals = []
+      for fsub in fsubs
+        val.gsub!(fsub.text_value, "%s") 
+        svals.push(fsub.expression.codegen(g).last.to_s(g))
+      end
+      unless svals.empty?
+        length = INT.from_i(100)
+        string = g.builder.alloca(PCHAR.element_type)
+        g.builder.call(Runtime.sprintf, string, I32.from_i(0), length, GlobalStrings.pointer(val), *svals)
+        return Object.create(string, g.builder)
+      else
+        return g.string(val)
+      end
     end
   end
   

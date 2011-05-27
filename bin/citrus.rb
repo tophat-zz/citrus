@@ -18,7 +18,7 @@ if $h
 end
 
 file = ARGV.first
-abort "Usage: citrus [-hiO] [-c=file.o] file.or" unless file
+abort "Usage: citrus [-bhiO] [-c=file.o] file.or" unless file
 
 g = Citrus.compile_file(File.expand_path(file))
 g.optimize unless $O
